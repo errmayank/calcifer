@@ -1,0 +1,121 @@
+name: "Pull Request"
+
+on: [pull_request]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+    NODE_VERSION: 22.12.0
+    PNPM_VERSION: 9.15.2
+
+jobs:
+    format:
+        name: "Format"
+        if: github.repository == 'errmayank/calcifer'
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout repository"
+              uses: actions/checkout@v4
+
+            - name: "Setup pnpm"
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: "Setup Node.js"
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: pnpm
+
+            - name: "Get pnpm store directory"
+              id: pnpm_cache
+              shell: bash
+              run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: "Setup pnpm cache"
+              uses: actions/cache@v4
+              with:
+                  path: ${{ steps.pnpm_cache.outputs.pnpm_cache_dir }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: ${{ runner.os }}-pnpm-store-
+
+            - name: "Install frontend dependencies"
+              run: pnpm install
+
+            - name: "Check format"
+              run: pnpm run format-check
+
+    lint:
+        name: "Lint"
+        if: github.repository == 'errmayank/calcifer'
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout repository"
+              uses: actions/checkout@v4
+
+            - name: "Setup pnpm"
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: "Setup Node.js"
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: pnpm
+
+            - name: "Get pnpm store directory"
+              id: pnpm_cache
+              shell: bash
+              run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: "Setup pnpm cache"
+              uses: actions/cache@v4
+              with:
+                  path: ${{ steps.pnpm_cache.outputs.pnpm_cache_dir }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: ${{ runner.os }}-pnpm-store-
+
+            - name: "Install frontend dependencies"
+              run: pnpm install
+
+            - name: "Check lint"
+              run: pnpm run lint
+
+    build:
+        name: "Build"
+        if: github.repository == 'errmayank/calcifer'
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout repository"
+              uses: actions/checkout@v4
+
+            - name: "Setup pnpm"
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: "Setup Node.js"
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: pnpm
+
+            - name: "Get pnpm store directory"
+              id: pnpm_cache
+              shell: bash
+              run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: "Setup pnpm cache"
+              uses: actions/cache@v4
+              with:
+                  path: ${{ steps.pnpm_cache.outputs.pnpm_cache_dir }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: ${{ runner.os }}-pnpm-store-
+
+            - name: "Install frontend dependencies"
+              run: pnpm install
+
+            - name: "Build application"
+              run: pnpm run build

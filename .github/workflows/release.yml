@@ -1,0 +1,69 @@
+name: "Release"
+
+on:
+    push:
+        branches:
+            - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+    NODE_VERSION: 22.12.0
+    PNPM_VERSION: 9.15.2
+
+jobs:
+    version_or_publish:
+        name: "Version or Publish"
+        if: github.repository == 'errmayank/calcifer'
+        permissions:
+            contents: "write"
+            pull-requests: "write"
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout repository"
+              uses: actions/checkout@v4
+
+            - name: "Setup pnpm"
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: "Setup Node.js"
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: pnpm
+
+            - name: "Get pnpm store directory"
+              id: pnpm_cache
+              shell: bash
+              run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: "Setup pnpm cache"
+              uses: actions/cache@v4
+              with:
+                  path: ${{ steps.pnpm_cache.outputs.pnpm_cache_dir }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: ${{ runner.os }}-pnpm-store-
+
+            - name: "Install frontend dependencies"
+              run: pnpm install
+
+            - name: "Get new version"
+              id: new_version
+              run: |
+                  pnpm changeset status --output=changeset-status.json
+                  NEW_VERSION=$(jq --raw-output '.releases[0].newVersion' changeset-status.json)
+                  rm changeset-status.json
+                  echo "value=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+            - name: "Create a release pull request"
+              id: changesets
+              uses: changesets/action@v1
+              with:
+                  commit: "chore(release): v${{ steps.new_version.outputs.value }}"
+                  title: "chore(release): v${{ steps.new_version.outputs.value }}"
+                  version: pnpm changeset-version
+                  publish: pnpm changeset-tag
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
